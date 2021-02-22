@@ -80,25 +80,31 @@ How does it work? See below:
 
 See the documentation for more details and features.
 
-# Supported Odoo server versions
+=======
+Supported Odoo server versions
+=======
 
 `Odoo` 13
 `Odoo` 14
 
-# License
+=======
+License
+=======
 
 This software is made available under the `LGPL v3` license.
 
-# Credits
+=======
+Credits
+=======
 
-## Contributors
+=======
+Contributors
+=======
 
 - Master Zhang <odoowww@163.com> <winboy99@163.com>
 
-## Maintainer
+=======
+Maintainer
+=======
 
 This package is maintained by the Master Zhang <odoowww@163.com> <winboy99@163.com>.
-
-```
-
-```
