@@ -12,7 +12,8 @@ Features supported:
 
 How does it work? See below:
 
-```
+.. code-block:: python
+
     import odoorpc2
     odoo = odoorpc.ODOO('localhost', port=8069)
     odoo.login('db_name', 'user', 'passwd')
@@ -76,7 +77,6 @@ How does it work? See below:
 
     # commit all changed, call create for new sale.order, or write for exist sale.order
     so.commit()
-```
 
 See the documentation for more details and features.
 
@@ -98,3 +98,7 @@ This software is made available under the `LGPL v3` license.
 ## Maintainer
 
 This package is maintained by the Master Zhang <odoowww@163.com> <winboy99@163.com>.
+
+```
+
+```
