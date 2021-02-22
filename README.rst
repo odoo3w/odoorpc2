@@ -6,9 +6,9 @@ OdooRPC2
 
 Features supported:
 
-1. - follow **OdooRpc**,
-2. - all method in **OdooRpc** can used,
-3. - some magic for create, write, onchange
+- follow **OdooRpc**,
+- all method in **OdooRpc** can used,
+- some magic for create, write, onchange
 
 How does it work? See below:
 
