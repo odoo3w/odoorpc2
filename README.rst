@@ -2,7 +2,7 @@
 OdooRPC2
 =======
 
-**OdooRPC2** is an extended Python package for **OdooRpc**.
+**OdooRPC2** is an extended Python package for **OdooRpc**, https://github.com/OCA/odoorpc
 
 Features supported:
 
