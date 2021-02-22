@@ -1,8 +1,8 @@
 # -*- coding: UTF-8 -*-
 ##############################################################################
 #
-#    OdooRPC
-#    Copyright (C) 2014 odoowww@163.com.
+#    OdooRPC2
+#    Copyright (C) 2020 Master Zhang odoowww@163.com.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as published
@@ -21,12 +21,21 @@
 
 
 """
+The `odoorpc2` module defines the :class:`ODOO` class 
+inherited from `odoorpc.ODOO` .
 
+Here's a sample session using this module same to `odoorpc`::
+    >>> import odoorpc2
+    >>> odoo = odoorpc2.ODOO('localhost', port=8069)  # connect to localhost, default port
+    >>> odoo.login('dbname', 'admin', 'admin')
+
+new api::
+    >>> odoo.session_info
 
 """
 
 __author__ = 'Master Zhang'
-__email__ = 'sebastien.alix@osiell.com'
+__email__ = 'odoowww@163.com'
 __licence__ = 'LGPL v3'
 __version__ = '0.7.0'
 

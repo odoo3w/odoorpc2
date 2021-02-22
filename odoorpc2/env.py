@@ -1,3 +1,24 @@
+# -*- coding: UTF-8 -*-
+##############################################################################
+#
+#    OdooRPC
+#    Copyright (C) 2020 Master Zhang <odoowww@163.com>.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published
+#    by the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+
 
 from odoorpc2.models import Model
 from odoorpc2 import fields
@@ -10,6 +31,9 @@ from odoorpc.env import Environment as odoorpc_Environment
 
 
 class Environment(odoorpc_Environment):
+    """ Override odoorpc.env.Environment.
+    rewrite method: commit, __call__, _create_model_class
+    """
 
     def __repr__(self):
         return "Environment2(db=%s, uid=%s, context=%s)" % (
@@ -18,16 +42,15 @@ class Environment(odoorpc_Environment):
     def commit(self):
         """
         never call commit in env.
-        we imple commit in Model by 'write' and 'create' method 
+        call commit in Model by 'write' and 'create' method 
         """
         return
 
     def __call__(self, context=None):
         """
-        重写这个方法 是因为  Model.with_context 方法中 用到了 cls.env()
-        而这里的代码: 
-         env = Environment(self._odoo, self._db, self._uid, context)
-         Environment 是 hard cord
+        Rewrite this method, because:
+        This method be called in method with_context of Model Class.
+        But in here, 'Environment' should be Environment in odooRpc2
         """
         # print('env call:', self)
         # print('env call:', self.__class__)
@@ -43,10 +66,13 @@ class Environment(odoorpc_Environment):
         return env
 
     def _create_model_class(self, model):
-        """ 重写这个方法 是为了 
-        1. 用 odoorpc2 中 扩展的 Model 和 fields
-        2. 记录 _model_id, 服务于 domain str2list
         """
+        Rewrite this method, because:
+        'Model' should be Model in odooRpc2
+        'fields' should be fields in odooRpc2
+        new attribute of '_model_id' is used for fields_get domain string to list
+        """
+
         cls_name = model.replace('.', '_')
         # Hack for Python 2 (no need to do this for Python 3)
         if sys.version_info[0] < 3:

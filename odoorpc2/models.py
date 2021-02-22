@@ -1,3 +1,24 @@
+# -*- coding: UTF-8 -*-
+##############################################################################
+#
+#    OdooRPC2
+#    Copyright (C) 2020 Master Zhang odoowww@163.com.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published
+#    by the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+
 
 from lxml import etree
 
@@ -23,28 +44,57 @@ def is_virtual_id(id_):
 
 
 class Model(odoorpc_Model):
+    """
+    1. append some function to call create, write, onchange method for odoo
+    2 new or update one2many field value
+
+    some changed:
+     1. `get_selection` new method for `many2one` or `many2many` field selection
+     2. `browse` method is extend for prepare values for `create`
+     3. `new', a new method for `one2many` field
+     4. `commit`, a new method to call `create` or `write`
+     5. some other function for `onchange` or `one2many` field
+
+    """
+
     _field_onchanges = {}
 
     def __init__(self):
         super().__init__()
 
-        # self.onchange2 = self._onchange2 # 设置 onchange 方法
+        # a new attribute for onchange method
         self._field_onchange = None  # 编辑页面用
 
     @property
     def field_onchange(self):
+        # a new attribute for onchange method
         return self._field_onchange
 
     def __repr__(self):
         return "Recordset2(%r, %s)" % (self._name, self.ids)
 
     @classmethod
-    def _get_domain(cls, field):
+    def _get_domain(cls, field, context=None):
         # 仅被 get_selection 使用
 
         # 在多公司时, 用户可能 用 allowed_company_ids 中的一个
         # 允许 用户 在前端 自己在 allowed_company_ids 中 选择 默认的公司
         # 该选择 需要 存储在 本地 config 中
+
+        #  全部 odoo 只有这4个 模型 在获取 fields_get时, 需要提供 globals_dict, 设置 domain
+        #  其余的只是需要 company_id
+        #  --- res.partner
+        #  <-str---> state_id [('country_id', '=?', country_id)]
+
+        #  --- sale.order.line
+        #  <-str---> product_uom [('category_id', '=', product_uom_category_id)]
+
+        #  --- purchase.order.line
+        #  <-str---> product_uom [('category_id', '=', product_uom_category_id)]
+
+        #  --- stock.move
+        #  <-str---> product_uom [('category_id', '=', product_uom_category_id)]
+
         def _get_company_id():
             session_info = cls._odoo.session_info
             # company_id = session_info['company_id']
@@ -71,42 +121,58 @@ class Model(odoorpc_Model):
 
         # 已 测试完成模型: TBD, 2021-2-19
         # 1 sale.order
-        #
+        # 2 sale.order.line 需要 product_uom_category_id
 
         globals_dict = {'company_id': company_id,
                         'res_model_id': res_model_id}
 
-        def _to_list_for_domain():
-            # for col, Field in cls._columns.items():
-            for Field in cls._columns.values():
-                # relation = getattr(Field, 'relation', False)
-                domain = getattr(Field, 'domain', False)
-                if domain and isinstance(domain, str):
-                    domain2 = eval(domain, globals_dict)
-                    # print(col, ':', Field.type, relation, type(domain), domain)
-                    # print(col, ':', Field.type, relation,
-                    #       type(domain2), domain2)
-                    Field.domain = domain2
+        # def _to_list_for_domain():
+        #     # for col, Field in cls._columns.items():
+        #     for Field in cls._columns.values():
+        #         # relation = getattr(Field, 'relation', False)
+        #         domain = getattr(Field, 'domain', False)
+        #         if domain and isinstance(domain, str):
+        #             domain2 = eval(domain, globals_dict, locals_dict)
+        #             # print(col, ':', Field.type, relation, type(domain), domain)
+        #             # print(col, ':', Field.type, relation,
+        #             #       type(domain2), domain2)
+        #             Field.domain = domain2
 
-        _to_list_for_domain()
+        # _to_list_for_domain()
 
-        return cls._columns[field].domain
+        Field = cls._columns[field]
+        domain = getattr(Field, 'domain', False)
+
+        if domain and isinstance(domain, str):
+            domain = eval(domain, globals_dict, context or {})
+
+        return domain
 
     @classmethod
-    def get_selection(cls, field_name):
-        # 对外方法, 获取 m2o/m2m字段选择项
+    def get_selection(cls, field_name, context=None):
+        """
+        # 
         # TBD  field_name = order_line.product_id
         # 子 o2m
 
-        # print('Selection')
-        domain = cls._get_domain(field_name)
-        relation = cls._columns[field_name].relation
-        context = cls._columns[field_name].context
+        """
 
-        # print('Selection meta:', field_name, relation, domain, context)
-        selection = cls.env[relation].name_search(args=domain)
-        # print('Selection meta:', field_name, selection)
-        return selection
+        fs = field_name.split('.')
+
+        if len(fs) > 1:
+            parent_field, child_field = fs
+            Relation = cls.env[cls._columns[parent_field].relation]
+            selection = Relation.get_selection(child_field, context=context)
+            return selection
+        else:
+            domain = cls._get_domain(field_name, context=context)
+            relation = cls._columns[field_name].relation
+            context = cls._columns[field_name].context
+
+            # print('Selection meta:', field_name, relation, domain, context)
+            selection = cls.env[relation].name_search(args=domain)
+            # print('Selection meta:', field_name, selection)
+            return selection
 
     def new(self):
         """

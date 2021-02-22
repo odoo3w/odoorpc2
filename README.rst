@@ -67,7 +67,9 @@ How does it work? See below:
     line2.product_id = 2
 
     # line1 and line2  all in lines
-    line_ids = lines.ids
+    lines.ids
+    line1.id
+    line2.id
 
     # read other field in order_line, maybe set by onchange
     lines[0].product_uom_qty
@@ -75,7 +77,7 @@ How does it work? See below:
     # read other field in sale.order, maybe set by onchange
     so.amount_total
 
-    # commit all changed, call create for new sale.order, or write for exist sale.order
+    # commit all changed, call create for new, or write for update
     so.commit()
 
 See the documentation for more details and features.

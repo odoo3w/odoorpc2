@@ -194,64 +194,78 @@ def test_write_sol():
 
     # print2('read so', so)
 
-    # odoo.print_dict(so.field_onchange)
+    # # odoo.print_dict(so.field_onchange)
 
-    # # # 读 sol 显示
+    # # # # 读 sol 显示
     print2('read 1 line', )
     line = so.order_line
-    print2('line 1', line)
-    # print2('line 1', so._columns['order_line']._data)
-    # print2('line 1', line._from_record[1]._data)
-    # print2('line 1', line._from_record[0]._columns['order_line']._data)
 
-    # 编辑 line
-    # line0 = line[0]
-    # print2('line 1', line0)
+    ss1 = line.get_selection('product_uom', context={
+                             'product_uom_category_id': 1})
 
-    # product_uom_qty = line0.product_uom_qty
-    # print2('line 1', product_uom_qty)
+    print2('read 1 line', ss1)
 
+    ss = so.get_selection('order_line.product_uom', context={
+        'product_uom_category_id': 1})
+
+    print2('read 1 line', ss)
+
+    # for k, Field in line._columns.items():
+    #     print(k,  getattr(Field, 'domain', False))
+
+    # print2('line 1', line)
+    # # print2('line 1', so._columns['order_line']._data)
+    # # print2('line 1', line._from_record[1]._data)
+    # # print2('line 1', line._from_record[0]._columns['order_line']._data)
+
+    # # 编辑 line
+    # # line0 = line[0]
+    # # print2('line 1', line0)
+
+    # # product_uom_qty = line0.product_uom_qty
+    # # print2('line 1', product_uom_qty)
+
+    # # line0.product_uom_qty = 12
+
+    # # # # # new order line
+    # print2('read 1 line new', )
+    # line0 = so.order_line.new()
+    # # print2('line new', line0, line0._values)
+    # # print2('line new', line0, line0._values_to_write)
+    # # print2('line 1', line, line._values)
+    # # print2('line 1', line, line._values_to_write)
+
+    # # print2('line 1', line0._from_record)
+    # # print2('line 1', [so._columns['order_line']])
+
+    # # print2('line 1', line0._from_record[1]._data)
+    # # print2('line 1', line0._from_record[0]._columns['order_line']._data)
+
+    # product_id = line0.product_id
+    # print2('line new pid', product_id)
+
+    # line0.product_id = 2
+    # print2('line 1', product_id)
+
+    # # print2('so', so._values,)
+    # # print2('so', so._values_to_write,)
+
+    # # line = so.order_line
+    # # print2('sol all:', line)
+
+    # line6 = so.order_line[0]
+    # print2('sol line6:', line6)
+
+    # product_uom_qty = line6.product_uom_qty
+    # print2('line6', product_uom_qty)
+
+    # line6.product_uom_qty = 18
+
+    # print2('line6', product_uom_qty)
     # line0.product_uom_qty = 12
 
-    # # # # new order line
-    print2('read 1 line new', )
-    line0 = so.order_line.new()
-    # print2('line new', line0, line0._values)
-    # print2('line new', line0, line0._values_to_write)
-    # print2('line 1', line, line._values)
-    # print2('line 1', line, line._values_to_write)
-
-    # print2('line 1', line0._from_record)
-    # print2('line 1', [so._columns['order_line']])
-
-    # print2('line 1', line0._from_record[1]._data)
-    # print2('line 1', line0._from_record[0]._columns['order_line']._data)
-
-    product_id = line0.product_id
-    print2('line new pid', product_id)
-
-    line0.product_id = 2
-    print2('line 1', product_id)
-
-    # print2('so', so._values,)
-    # print2('so', so._values_to_write,)
-
-    # line = so.order_line
-    # print2('sol all:', line)
-
-    line6 = so.order_line[0]
-    print2('sol line6:', line6)
-
-    product_uom_qty = line6.product_uom_qty
-    print2('line6', product_uom_qty)
-
-    line6.product_uom_qty = 18
-
-    print2('line6', product_uom_qty)
-    line0.product_uom_qty = 12
-
-    # print2('so', line0,)
-    so.commit()
+    # # print2('so', line0,)
+    # so.commit()
 
 
 def test2():

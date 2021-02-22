@@ -1,3 +1,30 @@
+# -*- coding: UTF-8 -*-
+##############################################################################
+#
+#    OdooRPC2
+#    Copyright (C) 2020 Master Zhang odoowww@163.com.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published
+#    by the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+
+""" Inherited form odoorpc.fields.
+
+Override `__set__` method to call `onchange` method for odoo
+Rewrite `One2many` Class to prepare values for `create` or `write`
+
+"""
 
 
 from odoorpc.models import IncrementalRecords
@@ -226,8 +253,9 @@ class BaseField(odoorpc_BaseField):
         return value
 
     def __set__(self, instance, value):
-        """Each time a record is modified, it is marked as dirty
-        in the environment.
+        """Each time a record is modified, 
+        DONT marked as dirty in the environment.
+        call `onchange` method for odoo
         """
         # print('base set', self, instance, value)
 
@@ -315,6 +343,9 @@ class Many2one(odoorpc_Many2one, BaseField):
 
 class One2many(odoorpc_One2many, BaseField):
     """Represent the OpenObject 'fields.one2many'"""
+
+    # `__get__` function extend for edit
+    # `_values` and `_values_to_write` of relation Model is located in here
 
     def __init__(self, name, data):
         # 整理 onchange 参数 values 时, 需要 relation_field
@@ -456,9 +487,8 @@ class One2many(odoorpc_One2many, BaseField):
 class Reference(odoorpc_Reference, BaseField):
     """Represent the OpenObject 'fields.reference'."""
 
-    # def __get__(self, instance, owner):
-    #     # TBD
-    #     return super().__get__(instance, owner)
+    # few model have `Reference` field
+    # if used, must be test here
 
 
 class Text(odoorpc_Text, BaseField):

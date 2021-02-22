@@ -1,10 +1,45 @@
 
+# -*- coding: UTF-8 -*-
+##############################################################################
+#
+#    OdooRPC2
+#    Copyright (C) 2020 Master Zhang odoowww@163.com.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published
+#    by the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+
 import odoorpc
 
 from odoorpc2.env import Environment
 
 
 class ODOO(odoorpc.ODOO):
+    """Inherited form `odoorpc.ODOO`
+    new api.
+
+    .. doctest::
+    >>> import odoorpc2
+    >>> odoo = odoorpc2.ODOO('localhost', port=8069)  # connect to localhost, default port
+    >>> odoo.login('dbname', 'admin', 'admin')
+    >>> odoo.session_info
+
+    `auto_commit` default value is True in odoorpc.ODOO 
+    but False in odoorpc2.ODOO
+
+    """
+
     def __init__(self, host='localhost', protocol='jsonrpc',
                  port=8069, timeout=120, version=None, opener=None):
 
@@ -13,19 +48,25 @@ class ODOO(odoorpc.ODOO):
 
         # by default, auto_commit is False
         self.config['auto_commit'] = False
+
         self._session_info = {}
+
+        #
         self._virtual_id = 1
 
     @property
     def session_info(self):
+        # after login, we store session in here
         return self._session_info
 
     def _get_virtual_id(self):
+        # for o2m field to new, need an unique virtual id
         int_virtual_id = self._virtual_id
         self._virtual_id = self._virtual_id + 1
         return 'virtual_%s' % (int_virtual_id)
 
     def login(self, db, login='admin', password='admin'):
+        # after login, we gei session_info form odoo
         super().login(db, login=login, password=password)
 
         if self.env.uid:
