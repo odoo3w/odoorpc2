@@ -68,9 +68,10 @@ class Environment(odoorpc_Environment):
     def _create_model_class(self, model):
         """
         Rewrite this method, because:
-        'Model' should be Model in odooRpc2
-        'fields' should be fields in odooRpc2
-        new attribute of '_model_id' is used for fields_get domain string to list
+        1. 'Model' should be Model in odooRpc2
+        2. 'fields' should be fields in odooRpc2
+        3. new attribute of '_model_id' is used for fields_get domain string to list
+        4. field name need not append if not in fields_get
         """
 
         cls_name = model.replace('.', '_')
@@ -96,11 +97,16 @@ class Environment(odoorpc_Environment):
                 Field = fields.generate_field(field_name, field_data)
                 attrs['_columns'][field_name] = Field
                 attrs[field_name] = Field
+
         # Case where no field 'name' exists, we generate one (which will be
         # in readonly mode) in purpose to be filled with the 'name_get' method
-        if 'name' not in attrs['_columns']:
-            field_data = {'type': 'text', 'string': 'Name', 'readonly': True}
-            Field = fields.generate_field('name', field_data)
-            attrs['_columns']['name'] = Field
-            attrs['name'] = Field
+
+        # this is a bug in odoorpc
+        # 'name' field not in feilds_get, so browse raise error
+        # 'display_name' field can be used for 'name_get' method
+        # if 'name' not in attrs['_columns']:
+        #     field_data = {'type': 'text', 'string': 'Name', 'readonly': True}
+        #     Field = fields.generate_field('name', field_data)
+        #     attrs['_columns']['name'] = Field
+        #     attrs['name'] = Field
         return type(cls_name, (Model,), attrs)

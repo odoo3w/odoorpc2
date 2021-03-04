@@ -48,10 +48,7 @@ class ODOO(odoorpc.ODOO):
 
         # by default, auto_commit is False
         self.config['auto_commit'] = False
-
         self._session_info = {}
-
-        #
         self._virtual_id = 1
 
     @property
@@ -60,7 +57,7 @@ class ODOO(odoorpc.ODOO):
         return self._session_info
 
     def _get_virtual_id(self):
-        # for o2m field to new, need an unique virtual id
+        # new a o2m field, need an unique virtual id
         int_virtual_id = self._virtual_id
         self._virtual_id = self._virtual_id + 1
         return 'virtual_%s' % (int_virtual_id)

@@ -60,7 +60,7 @@ def test1():
 
 def get_allowed_company_ids():
     session_info = odoo.session_info
-    print2('session_info', session_info)
+    # print2('session_info', session_info)
 
     user_companies = session_info['user_companies']
     # print2(user_companies)
@@ -115,14 +115,58 @@ def test_create_so():
     print2('read so', so)
 
 
+def test_write_so2():
+    print2(' test start')
+    model = 'sale.order'
+    # model = 'ir.model'
+    Model = odoo.env[model]
+    print2(Model)
+    context2 = {
+        'allowed_company_ids': get_allowed_company_ids(),
+    }
+
+    context = {}
+    context.update(Model.env.context)
+    context.update(context2)
+
+    SO = Model.with_context(context)
+    print2(SO)
+    id_ = 1
+    view_form_xml_id = 'sale.view_order_form'
+    so = SO.browse(id_, view_form_xml_id=view_form_xml_id)
+    print2('read so', so)
+    # p = so.partner_id
+    # print2(p)
+
+    # odoo.print_dict(so._columns)
+    line = so.order_line
+    print2('read line', line,  id(line._values))
+
+    line1 = line.new()
+    print2('read l2', line1)
+    print2('read line', line)
+    line = so.order_line
+    print2('read line', line)
+
+    # print2('read so', so._values_to_write)
+
+    odoo.print_dict(so._values_to_write)
+
+    # line1 = line[0]
+    # print2('read line1', line1, id(line1._values))
+
+    # print2('read line1', line1, line1._values)
+    # print2('read line1', line1, line1._columns)
+
+    # print2('read line1', so, so._values_relation)
+
+
 def test_write_so():
     print2(' test start')
     model = 'sale.order'
     # model = 'ir.model'
     Model = odoo.env[model]
     print2(Model)
-    # print2(Model._columns)
-    # # print(Model.env)
 
     context2 = {
         'allowed_company_ids': get_allowed_company_ids(),
@@ -268,12 +312,37 @@ def test_write_sol():
     # so.commit()
 
 
+def get_onchange_spec():
+    model = 'res.partner.title'
+    # model = 'ir.model'
+    Model = odoo.env[model]
+    print2(Model)
+
+    res = Model._onchange_spec()
+
+    print(res)
+
+    odoo.print_dict(res)
+
+
 def test2():
     # test_create_so()
-    test_write_sol()
+    # test_write_so()
+    test_write_so2()
+
+    # test_write_sol()
+
+    # get_onchange_spec()
 
     # create 时 测试  order_line
     # test_create_sol()
+
+    # M = odoo.env['ir.sequence.date_range']
+    # ids = M.search([])
+
+    # m = M.browse(ids)
+
+    # print(m.date_from, type(m.date_from))
 
     pass
 
