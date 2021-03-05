@@ -231,7 +231,7 @@ class BaseField(odoorpc_BaseField):
 
         return instance._values_to_write[self.name][instance.id]
 
-    def _get_for_onchange(self, instance, **kwargs):
+    def get_for_onchange(self, instance, **kwargs):
         # 仅被 instance._get_values_for_onchange 调用
         value = instance._values[self.name].get(instance.id)
         if instance.id in instance._values_to_write[self.name]:
@@ -239,7 +239,7 @@ class BaseField(odoorpc_BaseField):
         return value
 
     def __set__(self, instance, value):
-        """Each time a record is modified, 
+        """Each time a record is modified,
         DONT marked as dirty in the environment.
         call `onchange` method for odoo
         """
@@ -248,19 +248,16 @@ class BaseField(odoorpc_BaseField):
         if not instance.field_onchange:
             return super().__set__(instance, value)
 
-        instance._trigger_onchange(self.name)
+        instance.trigger_onchange(self.name)
 
         # 这里不调 super().__set__,
         # 在编辑页面下, 不写 instance.env.dirty
         #
         return
 
-    def _commit(self, instance):
-        #
+    def commit(self, instance):
+        # only a skeleton, to be overrid for o2m
         pass
-        # if instance.id in instance._values_to_write[self.name]:
-        #     value = instance._values_to_write[self.name].pop(instance.id)
-        #     instance._values[self.name][instance.id] = value
 
 
 class Binary(odoorpc_Binary, BaseField):
@@ -302,7 +299,7 @@ class Selection(odoorpc_Selection, BaseField):
 class Many2many(odoorpc_Many2many, BaseField):
     """Represent the OpenObject 'fields.many2many'"""
 
-    def _get_for_onchange(self, instance, **kwargs):
+    def get_for_onchange(self, instance, **kwargs):
         # 仅被 instance._get_values_for_onchange 调用
         # TBD 这个未认真测试过
         # in _values:  (6, 0, ids)
@@ -389,16 +386,28 @@ class One2many(odoorpc_One2many, BaseField):
         storage['records'] = relation
         return relation
 
-    def _get_for_onchange(self, instance, for_parent=None):
-        # 仅被 instance._get_values_for_onchange 调用
+    def _update_relation(self, instance, o2m_id, values):
+        # 仅仅 被 instance._update_parent 调用
+        # TBD check
 
-        # print('_get_for_onchange', self.name,  instance, for_parent)
+        op = (not is_virtual_id(o2m_id)) and 1 or 0
+        new_value = [(op, o2m_id, values)]
+        old_value = instance._values_to_write[self.name].get(instance.id, [])
+        values_to_write = merge_tuples(old_value, new_value)
+        instance._values_to_write[self.name][instance.id] = values_to_write
+
+        relation = self._get_storage_records(instance)
+
+        if relation and o2m_id not in relation._ids:
+            relation._ids.append(o2m_id)
+
+    def get_for_onchange(self, instance, for_parent=None):
+        # 仅被 instance._get_values_for_onchange 调用
 
         value = instance._values[self.name][instance.id] or []
 
         value = [(4, id_, False) for id_ in value]
 
-        # print('_get_for_onchange', value_dict)
         if instance.id in instance._values_to_write[self.name]:
             value_to_write = instance._values_to_write[self.name][instance.id]
             # TBD 处理  修改过的
@@ -425,9 +434,6 @@ class One2many(odoorpc_One2many, BaseField):
         if not relation:
             return value
 
-        # print('_get_for_onchange  relation 2', relation)
-        # print('_get_for_onchange 3', value)
-
         value2 = []
         for tup in value:
             if tup[0] not in [0, 1]:
@@ -440,24 +446,7 @@ class One2many(odoorpc_One2many, BaseField):
             new_tup = (tup[0], tup[1], tup_vals2)
             value2.append(new_tup)
 
-        # print('_get_for_onchange 4', value2)
-
         return value2
-
-    def _update_relation(self, instance, o2m_id, values):
-        # 仅仅 被 instance._update_parent 调用
-        # TBD check
-
-        op = (not is_virtual_id(o2m_id)) and 1 or 0
-        new_value = [(op, o2m_id, values)]
-        old_value = instance._values_to_write[self.name].get(instance.id, [])
-        values_to_write = merge_tuples(old_value, new_value)
-        instance._values_to_write[self.name][instance.id] = values_to_write
-
-        relation = self._get_storage_records(instance)
-
-        if relation and o2m_id not in relation._ids:
-            relation._ids.append(o2m_id)
 
     def _get_for_CU(self, instance, value):
         if value is None:
@@ -495,23 +484,31 @@ class One2many(odoorpc_One2many, BaseField):
         value = super().get_for_write(instance)
         return self._get_for_CU(instance, value)
 
-    def _commit(self, instance):
+    def commit(self, instance):
         # if instance.id in instance._values_to_write[self.name]:
         #     instance._values_to_write[self.name].pop(instance.id)
         #     instance._values[self.name][instance.id] = None
 
-        storage = instance._values_relation[self.name]
+        def _get_storage_sync():
+            if instance._values_relation:
+                if instance._values_relation.get(self.name):
+                    storage = instance._values_relation[self.name]
+                    return storage
+
+            return None
+
+        storage = _get_storage_sync()
         if not storage.records:
             return
 
         records = storage.records
         for field in records._values:
             for o2m_id in records._values[field]:
-                records._values[field].pop(o2m_id)
+                del records._values[field][o2m_id]
 
         for field in records._values_to_write:
             for o2m_id in records._values_to_write[field]:
-                records._values_to_write[field].pop(o2m_id)
+                del records._values_to_write[field][o2m_id]
 
         storage.records = None
 
@@ -560,63 +557,3 @@ def generate_field(name, data):
     assert 'type' in data
     field = TYPES_TO_FIELDS.get(data['type'], Unknown)(name, data)
     return field
-
-
-# def merge_tuples2(old_tuples, new_tuples):
-#     ret = old_tuples[:]
-#     for newval in new_tuples:
-#         temp = []
-#         to_append = newval
-
-#         for oldval in ret:
-#             if newval[0] in [6, 5]:
-#                 # new=6,5, old=any
-#                 to_append = newval
-#                 break
-#             elif oldval[0] in [6, 5]:
-#                 # 1st, new=4,3,2,1,0, old=6,5
-#                 temp.append(oldval)
-#                 to_append = newval
-#             elif newval[1] != oldval[1]:
-#                 # 2nd, new=4,3,2,1,0, old=4,3,2,1,0, id not equ
-#                 temp.append(oldval)
-#                 # to_append = newval
-#             elif oldval[0] == 0 and newval[0] == 0:
-#                 # 3rd, new=0, old=0, id equ
-#                 # new update
-#                 to_append = newval
-#             elif oldval[0] == 0 and newval[0] in [2, 3]:
-#                 # 4th, new line then delete
-#                 # this a extend for odoo
-#                 to_append = None
-#             elif oldval[0] == 0 and newval[0] not in [0, 2, 3]:
-#                 # 5th, never goto here
-#                 to_append = None
-#             elif oldval[0] in [1, 4] and newval[0] in (1, 2, 3):
-#                 # 6th, old line , then edit or del
-#                 to_append = newval
-#             elif oldval[0] in [1, 4] and newval[0] == 4:
-#                 # 7th, few goto here. old then add.
-#                 to_append = oldval
-#             elif oldval[0] in [1, 4] and newval[0] not in (1, 2, 3, 4):
-#                 # 8th, never goto here. old then ...
-#                 to_append = None
-#             elif oldval[0] in [2, 3] and newval[0] == 4:
-#                 # 9th, del then add
-#                 to_append = newval
-#             elif oldval[0] in [2, 3] and newval[0]in (1, 2, 3):
-#                 # 10th, never goto here. del then del, edit
-#                 to_append = oldval
-#             elif oldval[0] in [2, 3] and newval[0] not in (1, 2, 3, 4):
-#                 # 11th, never goto here. # del then ...
-#                 to_append = oldval
-#             else:  # never goto here
-#                 # to_append = newval
-#                 pass
-
-#         if to_append:
-#             temp.append(to_append)
-
-#         ret = temp
-
-#     return ret

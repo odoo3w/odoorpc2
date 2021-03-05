@@ -136,12 +136,18 @@ class Model(odoorpc_Model):
 
         # print('_browse', cls, ids, from_record)
 
-        if from_record:
-            parent = from_record[0]
-            field = from_record[1]
-            if parent.field_onchange and field.type == 'one2many':
-                return cls._browse2(env, ids, from_record=from_record)
-                # return cls._browse_for_edit_from_record222(env, ids, from_record)
+        def check_is_o2m_edit():
+            if from_record:
+                parent = from_record[0]
+                field = from_record[1]
+                if parent.field_onchange and field.type == 'one2many':
+                    return True
+            return False
+
+        is_o2m_edit = check_is_o2m_edit()
+
+        if is_o2m_edit:
+            return cls._browse2(env, ids, from_record=from_record)
 
         records = super()._browse(env, ids, from_record=from_record, iterated=iterated)
 
@@ -160,32 +166,6 @@ class Model(odoorpc_Model):
         # 3. from_record and from_record[0].field_onchange is set and field.type == one2many
         # 4. this is all for edit
 
-        if not view_form_xml_id:
-            if not from_record:
-                raise error.InternalError(
-                    "No view_form_xml_id and No from_record")
-            elif not from_record[0].field_onchange:
-                raise error.InternalError(
-                    "No from_record[0].field_onchange")
-            elif from_record[1].type != 'one2many':
-                raise error.InternalError(
-                    "from_record.field is NOT one2many")
-
-        records = cls()
-        records._env_local = env
-
-        ids2 = ids
-
-        if from_record and not ids:
-            # o2m, new a record
-            ids2 = cls._odoo._get_virtual_id()
-
-        records._ids = _normalize_ids(ids2)
-
-        records._from_record = from_record
-        records._field_onchange = cls._get_field_onchange(
-            view_form_xml_id, from_record=from_record)
-
         def check_is_o2m_edit():
             if from_record:
                 parent = from_record[0]
@@ -195,6 +175,31 @@ class Model(odoorpc_Model):
             return False
 
         is_o2m_edit = check_is_o2m_edit()
+
+        # if not view_form_xml_id:
+        #     if not from_record:
+        #         raise error.InternalError(
+        #             "No view_form_xml_id and No from_record")
+        #     elif not from_record[0].field_onchange:
+        #         raise error.InternalError(
+        #             "No from_record[0].field_onchange")
+        #     elif from_record[1].type != 'one2many':
+        #         raise error.InternalError(
+        #             "from_record.field is NOT one2many")
+
+        records = cls()
+        records._env_local = env
+
+        ids2 = ids
+        if is_o2m_edit and not ids:
+            # o2m, new a record
+            ids2 = cls._odoo._get_virtual_id()
+
+        records._ids = _normalize_ids(ids2)
+
+        records._from_record = from_record
+        records._field_onchange = cls._get_field_onchange(
+            view_form_xml_id, from_record=from_record)
 
         if is_o2m_edit:
             parent = from_record[0]
@@ -213,7 +218,7 @@ class Model(odoorpc_Model):
             records._init_values_for_edit()
             return records
 
-        elif view_form_xml_id:  # for main page edit
+        elif view_form_xml_id:  # for main page new
             records._init_values_for_new()
             return records
         elif not is_o2m_edit:  # for read
@@ -342,18 +347,14 @@ class Model(odoorpc_Model):
                 self._values[fld][vid] = self._get_default(fld)
 
     def _get_values_for_onchange(self, for_parent=None, for_relation=None):
-        # 被 _trigger_onchange 调用, 组织 自己 及 parent 的 values
+        # 被 trigger_onchange 调用, 组织 自己 及 parent 的 values
         # 被 _default_get_onchange 调用, 组织 parent 的 values
-
-        print('_get_values_for_onchange 0,', self, for_parent)
-        # print('_get_values_for_onchange _values,', self._values)
-        # print('_get_values_for_onchange _values_to_write,', self._values_to_write)
 
         columns = [fld for fld in self.field_onchange if len(
             fld.split('.')) == 1]
 
         vals = dict(
-            (fld, self._columns[fld]._get_for_onchange(
+            (fld, self._columns[fld].get_for_onchange(
                 self, for_parent=for_parent))
             for fld in columns)
 
@@ -375,11 +376,7 @@ class Model(odoorpc_Model):
         else:
             return vals
 
-    def _trigger_onchange(self, field_name):
-        print('_trigger_onchange 1,', self, field_name)
-        # print('_trigger_onchange ,', self.field_onchange.get(field_name))
-        # print('_trigger_onchange ,', self._values)
-
+    def trigger_onchange(self, field_name):
         if not self.field_onchange:
             return
 
@@ -395,21 +392,14 @@ class Model(odoorpc_Model):
             parent = self._from_record[0]
             field = self._from_record[1]
 
-            # field.relation_field
-            print(' _trigger_onchange,parent, field.relation_field',
-                  parent, field.relation_field)
             parent_vals = parent._get_values_for_onchange(for_parent=True)
-            # print(' _trigger_onchange parent_vals', parent_vals)
-            # self._odoo.print_dict(
-            #     parent_vals, '_trigger_onchange, parent_vals')
+
             values.update({
                 field.relation_field: parent_vals
             })
 
-        # self._odoo.print_dict(values, '_trigger_onchange, values')
-
         onchange = self._onchange2(values, field_name, self.field_onchange)
-        print('_trigger_onchange 3 ,', onchange)
+
         self._after_onchange(onchange)
 
         if self._from_record:
@@ -418,7 +408,7 @@ class Model(odoorpc_Model):
             # print('base set 3', parent, field)
 
             if parent.field_onchange.get('%s.%s' % (field.name, field_name)):
-                parent._trigger_onchange(field.name)
+                parent.trigger_onchange(field.name)
 
         return
 
@@ -440,7 +430,6 @@ class Model(odoorpc_Model):
             self._values_to_write[fld][self.id] = val2
 
         if self._from_record:
-            print('222_after_onchange ')
             self._update_parent()
 
         # print('_after_onchange  ok ,', )
@@ -504,6 +493,7 @@ class Model(odoorpc_Model):
             del self._values[fld][None]
             if None in self._values_to_write[fld]:
                 del self._values_to_write[fld][None]
+            self._columns[fld].commit(self)
 
         self._ids = [id_]
         self._init_values_for_edit()
@@ -519,7 +509,10 @@ class Model(odoorpc_Model):
             return res
 
         for fld in self._values_to_write:
-            self._columns[fld]._commit(self)
+            if self.id in self._values_to_write[fld]:
+                del self._values_to_write[fld][self.id]
+
+            self._columns[fld].commit(self)
 
         self._init_values_for_edit()
         return res
@@ -751,26 +744,15 @@ class Model(odoorpc_Model):
         if self._from_record:
             parent = self._from_record[0]
             field = self._from_record[1]
-
-            # field.relation_field
-            # print(' _default_get_onchange,parent, field.relation_field',
-            #   parent, field.relation_field)
             parent_vals = parent._get_values_for_onchange(for_parent=True)
-            # print(' _trigger_onchange parent_vals', parent_vals)
-            # self._odoo.print_dict(
-            #     parent_vals, '_default_get_onchange, parent_vals')
             values_onchange.update({
                 field.relation_field: parent_vals
             })
 
         field_name = fields
-        # print2('_default_get_onchange')
-        # self._odoo.print_dict(values_onchange, '_default_get_onchange',)
 
         onchange = self.__class__.onchange(
             [], values_onchange, field_name, field_onchange)
-
-        # print('xxxxxx, onchange', onchange)
 
         def m2o(f, v):
             return self._columns[f].type == 'many2one' and v and [v, ''] or v
